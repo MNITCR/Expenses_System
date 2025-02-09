@@ -19,6 +19,7 @@ const ExpenseCategoryList = () => {
   const {t, i18n} = useTranslation();
   const [loading, setLoading] = useState(false);
   const userId = localStorage.getItem('userId');
+  const token = localStorage.getItem('authToken');
   // start stat for pagination
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -47,6 +48,9 @@ const ExpenseCategoryList = () => {
           search: search,
           userId: userId
         },
+        headers:{
+          Authorization: token
+        }
       });
 
       setCategoryExpenses(response.data.categories);
@@ -102,7 +106,11 @@ const ExpenseCategoryList = () => {
     const serverUrl = await apiSwitcher.connectToServer();
     try {
       const response = await axios.delete(
-        `${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}/${deleteCategoryId}`
+        `${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}/${deleteCategoryId}`,{
+          headers:{
+            Authorization: token
+          }
+        }
       );
 
       if (response.status == 200) {

@@ -7,9 +7,12 @@ export default {
     flowbite.content(),
   ],
   theme: {
-    extend: {fontFamily:{
-      kh_siemreap: "Khmer OS Siemreap"
-    }},
+    darkMode: 'class',
+    extend: {
+      fontFamily:{
+        kh_siemreap: "Khmer OS Siemreap"
+      }
+    },
   },
   plugins: [
     flowbite.plugin(),

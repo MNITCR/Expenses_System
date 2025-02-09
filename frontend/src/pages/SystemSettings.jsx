@@ -19,6 +19,7 @@ const SystemSettings = () => {
   const {t,i18n} = useTranslation();
   const [countExp, setCountExp] = useState(0);
   const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("authToken");
   const [setting, setSetting] = useState({
     language: 1,
     currency: 1,
@@ -39,14 +40,19 @@ const SystemSettings = () => {
             {
                 params: {
                 userId: userId,
-                }
+                },
+                headers:{
+          Authorization: token
+        }
             }
         );
         setCountExp(response_ex.data.exp);
         const response = await axios.get(`${serverUrl}/${import.meta.env.VITE_API_URL_SETTING}`,{
             params: {
                 userId: userId,
-            }
+            },headers:{
+          Authorization: token
+        }
         });
       if (
         response.status === 200 &&
@@ -100,7 +106,10 @@ const SystemSettings = () => {
     try {
       await axios.put(
         `${serverUrl}/${import.meta.env.VITE_API_URL_SETTING}/${userId}`,
-        setting
+        setting,{
+        headers:{
+          Authorization: token
+        }}
       );
       setSetting({});
       toast.success(`Updated ${name} successfully!`);
@@ -138,7 +147,7 @@ const SystemSettings = () => {
               {t('site_config')}
             </h3>
           </div>
-          <div className="grid grid-cols-4 gap-4 mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
             <div>
               <div className="mb-2 bloc">
                 <Label
@@ -239,7 +248,7 @@ const SystemSettings = () => {
               {t('money_and_number')}
             </h3>
           </div>
-          <div className="grid grid-cols-4 gap-4 mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
             <div>
               <div className="mb-2 bloc">
                 <Label

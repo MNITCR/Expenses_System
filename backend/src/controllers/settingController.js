@@ -44,7 +44,7 @@ const updateSetting = async (req, res) => {
   const { id } = req.params;
   const userId = {userId: id};
   try {
-    const settings = await Setting.findOneAndUpdate(userId, req.body);
+    const settings = await Setting.findOneAndUpdate(userId, req.body, { new: true });
 
     if (!settings) {
       return res.status(404).json({ message: "Setting not found." });

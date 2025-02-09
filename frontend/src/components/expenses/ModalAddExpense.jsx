@@ -29,6 +29,7 @@ const ModalAddExpense = ({
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("authToken");
 
   const getCategoryExpenses = async () => {
     const serverUrl = await apiSwitcher.connectToServer();
@@ -36,13 +37,18 @@ const ModalAddExpense = ({
     try {
       const response = await axios.get(
         `${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}`,
-        { params: { userId: userId } }
+        { params: { userId: userId },
+        headers:{
+          Authorization: token
+        }
+        }
       );
       setCategoryExpenses(response.data.categories);
       if (response.data.categories.length > 1 && !category) {
         setCategory(response.data.categories[0]._id);
       }
     } catch (error) {
+      console.log(error.message);
       toast.warning(`${error.response.data.message} !`);
     }
   };
@@ -67,13 +73,15 @@ const ModalAddExpense = ({
     }
     try {
       await axios.post(`${serverUrl}/${import.meta.env.VITE_API_URL_EXPENSE}`, {
-        date,
+        date: format(new Date(date), "yyyy-MM-dd"),
         name,
         price,
         category,
         description,
         userId,
-      });
+      },{headers:{
+          Authorization: token
+      }});
       setName("");
       setPrice("");
       setCategory("");

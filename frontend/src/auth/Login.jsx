@@ -21,28 +21,44 @@ const Login = () => {
         password,
       });
 
-      if (response.data.token) {
-        localStorage.setItem("authToken", response.data.token);
-        localStorage.setItem("userId", response.data.id);
+      const {token, id} = response.data;
+      if (token) {
+        localStorage.setItem("authToken", `Bearer ${token}`);
+        localStorage.setItem("userId", id);
         const expirationTime = new Date().getTime() + 3600000; // 1 hour expiration
+        // const expirationTime = new Date().getTime() + 1000; // 1 hour expiration
         localStorage.setItem("tokenExpiration", expirationTime.toString());
-        const insertSetting = await axios.post(`${serverUrl}/${import.meta.env.VITE_API_URL_SETTING}`,{
-          userId: response.data.id
-        });
+        const insertSetting = await axios.post(`${serverUrl}/${import.meta.env.VITE_API_URL_SETTING}`, {
+          userId: id
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            }
+          }
+        );
+
         if(insertSetting){
+          const lastVisitedPath = localStorage.getItem("lastVisitedPath") || "/";
+          localStorage.removeItem("lastVisitedPath");
+          navigate(lastVisitedPath);
           notify();
-          navigate("/");
+          // navigate("/");
         }
       } else {
         console.error("Login failed: No token received");
       }
     } catch (error) {
       if(error.response?.data?.message == "setting already setup"){
+        const lastVisitedPath = localStorage.getItem("lastVisitedPath") || "/";
+        localStorage.removeItem("lastVisitedPath");
+        navigate(lastVisitedPath);
         notify();
-        navigate("/");
+        // navigate("/");
       }else{
         const errorMessage = error.response?.data?.message || "Login failed";
         toast.warning(errorMessage);
+        console.log(error.message);
       }
     }
   };

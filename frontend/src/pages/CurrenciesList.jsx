@@ -13,14 +13,14 @@ import "react-toastify/dist/ReactToastify.css";
 import apiSwitcher from "../utils/apiSwitcher";
 import { useTranslation } from "react-i18next";
 
-
 const CurrenciesList = () => {
-  const {t,i18n} = useTranslation();
+  const { t, i18n } = useTranslation();
   // Delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteCurrencyId, setDeleteCurrencyId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const userId = localStorage.getItem('userId');
+  const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("authToken");
 
   // start stat add modal pop up
   const [currencyList, setCurrencyList] = useState([]);
@@ -45,11 +45,17 @@ const CurrenciesList = () => {
     setLoading(true);
     const serverUrl = await apiSwitcher.connectToServer();
     try {
-      const response = await axios.get(`${serverUrl}/${import.meta.env.VITE_API_URL_CURRENCY}`,{
-        params: {
-          userId: userId
+      const response = await axios.get(
+        `${serverUrl}/${import.meta.env.VITE_API_URL_CURRENCY}`,
+        {
+          params: {
+            userId: userId,
+          },
+          headers: {
+            Authorization: token,
+          },
         }
-      });
+      );
       setCurrencyList(response.data);
     } catch (error) {
       console.error("Error fetching categories", error);
@@ -75,7 +81,14 @@ const CurrenciesList = () => {
 
     try {
       const response = await axios.delete(
-        `${serverUrl}/${import.meta.env.VITE_API_URL_CURRENCY}/${deleteCurrencyId}`
+        `${serverUrl}/${
+          import.meta.env.VITE_API_URL_CURRENCY
+        }/${deleteCurrencyId}`,
+        {
+          headers: {
+            Authorization: token,
+          },
+        }
       );
 
       if (response.status == 200) {
@@ -109,10 +122,26 @@ const CurrenciesList = () => {
             <Table.HeadCell className="p-4">
               <Checkbox />
             </Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('category_code')}</Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('name')}</Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('exchange_rate')}</Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('action')}</Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("category_code")}
+            </Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("name")}
+            </Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("exchange_rate")}
+            </Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("action")}
+            </Table.HeadCell>
           </Table.Head>
           <Table.Body className="divide-y">
             {currencyList.length === 0 ? (
@@ -126,7 +155,10 @@ const CurrenciesList = () => {
               </Table.Row>
             ) : (
               currencyList.map((currency, i) => (
-                <Table.Row key={i} className="bg-white dark:border-gray-700 dark:bg-gray-800">
+                <Table.Row
+                  key={i}
+                  className="bg-white dark:border-gray-700 dark:bg-gray-800"
+                >
                   <Table.Cell className="p-4">
                     <Checkbox />
                   </Table.Cell>

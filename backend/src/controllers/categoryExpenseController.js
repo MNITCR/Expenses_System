@@ -37,9 +37,9 @@ const getCategoryExpense = async (req, res) => {
 }
 
 const createCategoryExpense = async (req, res) => {
-    const { name, code } = req.body;
+    const { code, userId } = req.body;
     try {
-        const existingCategory = await categoryExpense.findOne({$or: [{ name }, { code }]});
+        const existingCategory = await categoryExpense.findOne({$or: [{ userId }, { code }]});
 
         if (existingCategory) {
             return res.status(400).json({ message: `Category name ${name} and code ${code} already exists.` });

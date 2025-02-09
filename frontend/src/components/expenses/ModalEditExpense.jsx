@@ -22,12 +22,13 @@ const ModalEditExpense = ({
 }) => {
   const {t,i18n} = useTranslation();
   const [categoryExpenses, setCategoryExpenses] = useState([]);
-  const [date_expense, setDate] = useState();
+  const [date_expense, setDate] = useState(new Date);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("authToken");
 
   const getCategoryExpenses = async () => {
     const serverUrl = await apiSwitcher.connectToServer();
@@ -39,6 +40,9 @@ const ModalEditExpense = ({
           params: {
             userId: userId,
           },
+          headers:{
+          Authorization: token
+        }
         }
       );
       setCategoryExpenses(response.data.categories);
@@ -52,10 +56,13 @@ const ModalEditExpense = ({
 
     try {
       const response = await axios.get(
-        `${serverUrl}/${import.meta.env.VITE_API_URL_EXPENSE}/${editId}`
+        `${serverUrl}/${import.meta.env.VITE_API_URL_EXPENSE}/${editId}`,
+        {headers:{
+          Authorization: token
+        }}
       );
 
-      setDate(response.data.date);
+      setDate(format(new Date(response.data.date), "yyyy-MM-dd"));
       setName(response.data.name);
       setPrice(response.data.price);
       setCategory(response.data.category);
@@ -96,7 +103,9 @@ const ModalEditExpense = ({
           price,
           category,
           description,
-        }
+        },{headers:{
+          Authorization: token
+        }}
       );
       setDate("");
       setName("");
@@ -107,7 +116,8 @@ const ModalEditExpense = ({
       reloadExpenseList();
       setOpenEditModal(false);
     } catch (error) {
-      toast.warning(`${error.response.data.message} !`);
+      console.log(error.message)
+      // toast.warning(`${error.response.data.message} !`);
     }
   };
 

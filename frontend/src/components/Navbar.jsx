@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 import { Avatar, Dropdown, Navbar } from "flowbite-react";
-import useSWR from 'swr';
+import useSWR from "swr";
 import avatar from "../../src/assets/react.svg";
 import { DarkThemeToggle } from "flowbite-react";
-import { FaRegMoneyBillAlt } from 'react-icons/fa';
+import { FaRegMoneyBillAlt } from "react-icons/fa";
 import { FiSettings } from "react-icons/fi";
-import { MdCurrencyExchange  } from 'react-icons/md';
+import { MdCurrencyExchange } from "react-icons/md";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import apiSwitcher from "../utils/apiSwitcher";
-import { useGlobalSetting } from '../context/GlobalContext';
+import { useGlobalSetting } from "../context/GlobalContext";
 import FlagOfCam from "../assets/FlagOfCam.png";
 import Profile from "./user/Profile";
-
 
 const fetcher = (url) => axios.get(url).then((res) => res.data);
 const Nav = () => {
@@ -33,24 +32,24 @@ const Nav = () => {
     const serverUrl = await apiSwitcher.connectToServer();
     try {
       const res = await axios.get(`${serverUrl}/api/auth/${userId}`);
-      
-      if(res){
+
+      if (res) {
         setUserInfo({
           name: res.data.name,
-          email: res.data.email
-        })
+          email: res.data.email,
+        });
       }
     } catch (error) {
-      toast.warning(error.message)
+      toast.warning(error.message);
     }
   };
 
   useEffect(() => {
-    getUserInfo()
+    getUserInfo();
   }, []);
 
   const handleLogout = () => {
-    if(window.confirm("Are you sure you want to log out?")){
+    if (window.confirm("Are you sure you want to log out?")) {
       localStorage.removeItem("authToken");
       localStorage.removeItem("tokenExpiration");
       localStorage.removeItem("userId");
@@ -62,9 +61,9 @@ const Nav = () => {
   // Function to handle flag change
   const handleChangeFlag = () => {
     if (currentFlag === FlagOfCam) {
-      changeLanguage('en');
+      changeLanguage("en");
     } else {
-      changeLanguage('km');
+      changeLanguage("km");
     }
   };
 
@@ -73,7 +72,11 @@ const Nav = () => {
     setOpenUserModal(true);
   };
 
-  const isActive = ["/category_expense", "/currencies", "/system_settings"].includes(location.pathname);
+  const isActive = [
+    "/category_expense",
+    "/currencies",
+    "/system_settings",
+  ].includes(location.pathname);
   return (
     <>
       <style>
@@ -90,29 +93,89 @@ const Nav = () => {
             className="mr-3 h-6 sm:h-9"
             alt="Flowbite React Logo"
           />
-          <span className={`self-center whitespace-nowrap text-xl font-semibold dark:text-white ${i18n.language === 'km' ? "font-kh_siemreap" : ""}`}>
-            {t('expense_system')}
+          <span
+            className={`self-center whitespace-nowrap text-xl font-semibold dark:text-white ${
+              i18n.language === "km" ? "font-kh_siemreap" : ""
+            }`}
+          >
+            {t("expense_system")}
           </span>
         </Navbar.Brand>
 
         <Navbar.Collapse id="navbar_collapse_id">
-          <Navbar.Link as={Link} to="/" active={location.pathname === "/"} className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{i18n.t('home')}</Navbar.Link>
-          <Navbar.Link active={location.pathname === "/expense_report"} className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>
-            <Dropdown arrowIcon={true} inline label={i18n.t('report')}>
-              <Dropdown.Item as={Link} to="/expense_report" className={`${location.pathname === '/expense_report' ? 'text-cyan-700' : ''}`}><FaRegMoneyBillAlt className="mr-2 text-[16px]"/>{i18n.t('expense_report')}</Dropdown.Item>
+          <Navbar.Link
+            as={Link}
+            to="/"
+            active={location.pathname === "/"}
+            className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+          >
+            {i18n.t("home")}
+          </Navbar.Link>
+          <Navbar.Link
+            active={location.pathname === "/expense_report"}
+            className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+          >
+            <Dropdown arrowIcon={true} inline label={i18n.t("report")}>
+              <Dropdown.Item
+                as={Link}
+                to="/expense_report"
+                className={`${
+                  location.pathname === "/expense_report" ? "text-cyan-700" : ""
+                }`}
+              >
+                <FaRegMoneyBillAlt className="mr-2 text-[16px]" />
+                {i18n.t("expense_report")}
+              </Dropdown.Item>
             </Dropdown>
             <Navbar.Toggle />
           </Navbar.Link>
-          <Navbar.Link active={isActive} className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>
-            <Dropdown arrowIcon={true} inline label={i18n.t('setting')}>
-              <Dropdown.Item as={Link} to="/system_settings" className={`${location.pathname === '/system_settings' ? 'text-cyan-700' : ''}`}><FiSettings className="mr-2"/>{i18n.t('system_setting')}</Dropdown.Item>
-              <Dropdown.Item as={Link} to="/category_expense" className={`${location.pathname === '/category_expense' ? 'text-cyan-700' : ''}`}><FaRegMoneyBillAlt className="mr-2 text-[16px]"/>{i18n.t('category_expense')}</Dropdown.Item>
-              <Dropdown.Item as={Link} to="/currencies" className={`${location.pathname === '/currencies' ? 'text-cyan-700' : ''}`}><MdCurrencyExchange className="mr-2"/>{i18n.t('currency')}</Dropdown.Item>
+          <Navbar.Link
+            active={isActive}
+            className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+          >
+            <Dropdown arrowIcon={true} inline label={i18n.t("setting")}>
+              <Dropdown.Item
+                as={Link}
+                to="/system_settings"
+                className={`${
+                  location.pathname === "/system_settings"
+                    ? "text-cyan-700"
+                    : ""
+                }`}
+              >
+                <FiSettings className="mr-2" />
+                {i18n.t("system_setting")}
+              </Dropdown.Item>
+              <Dropdown.Item
+                as={Link}
+                to="/category_expense"
+                className={`${
+                  location.pathname === "/category_expense"
+                    ? "text-cyan-700"
+                    : ""
+                }`}
+              >
+                <FaRegMoneyBillAlt className="mr-2 text-[16px]" />
+                {i18n.t("category_expense")}
+              </Dropdown.Item>
+              <Dropdown.Item
+                as={Link}
+                to="/currencies"
+                className={`${
+                  location.pathname === "/currencies" ? "text-cyan-700" : ""
+                }`}
+              >
+                <MdCurrencyExchange className="mr-2" />
+                {i18n.t("currency")}
+              </Dropdown.Item>
             </Dropdown>
             <Navbar.Toggle />
           </Navbar.Link>
-          <Navbar.Link className="bg-none cursor-pointer" onClick={handleChangeFlag}>
-            <img src={currentFlag} alt="Flag Cambodia" className="w-6"/>
+          <Navbar.Link
+            className="bg-none cursor-pointer"
+            onClick={handleChangeFlag}
+          >
+            <img src={currentFlag} alt="Flag Cambodia" className="w-6" />
           </Navbar.Link>
           <Navbar.Link>
             <DarkThemeToggle />
@@ -136,14 +199,23 @@ const Nav = () => {
                   {userInfo.email}
                 </span>
               </Dropdown.Header>
-              <Dropdown.Item className={i18n.language === 'km' ? "font-kh_siemreap" : ""} onClick={handleOnClickEdit}>{t('profile')}</Dropdown.Item>
+              <Dropdown.Item
+                className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+                onClick={handleOnClickEdit}
+              >
+                {t("profile")}
+              </Dropdown.Item>
               {/* <Dropdown.Item>Settings</Dropdown.Item> */}
               <Dropdown.Divider />
-              <Dropdown.Item className={i18n.language === 'km' ? "font-kh_siemreap" : ""} onClick={handleLogout}>{i18n.t('sign_out')}</Dropdown.Item>
+              <Dropdown.Item
+                className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+                onClick={handleLogout}
+              >
+                {i18n.t("sign_out")}
+              </Dropdown.Item>
             </Dropdown>
             <Navbar.Toggle />
           </Navbar.Link>
-
         </Navbar.Collapse>
       </Navbar>
 

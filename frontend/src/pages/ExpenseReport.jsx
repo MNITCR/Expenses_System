@@ -45,6 +45,7 @@ const ExpenseReport = () => {
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [loading, setLoading] = useState(false);
   const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("authToken");
   const [searchParams, setSearchParams] = useState({
     date: "",
     name: "",
@@ -66,6 +67,9 @@ const ExpenseReport = () => {
             params: {
               userId: userId,
             },
+            headers:{
+              Authorization: token
+            }
           }
         );
 
@@ -152,6 +156,9 @@ const ExpenseReport = () => {
         `${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}`,{
           params: {
             userId: userId
+          },
+          headers:{
+            Authorization: token
           }
         }
       );
@@ -183,7 +190,10 @@ const ExpenseReport = () => {
       const serverUrl = await apiSwitcher.connectToServer();
       const response = await axios.get(
         `${serverUrl}${import.meta.env.VITE_API_URL_REPORTS}/expense_action`,
-        { params }
+        { params,
+        headers:{
+          Authorization: token
+        }}
       );
 
       setExpenseAll(response.data);
@@ -207,11 +217,14 @@ const ExpenseReport = () => {
       const serverUrl = await apiSwitcher.connectToServer();
       const response = await axios.get(
         `${serverUrl}${import.meta.env.VITE_API_URL_REPORTS}`,
-        { params }
+        { params,
+          headers:{
+            Authorization: token
+          }
+        }
       );
 
       setExpenseList(response.data.exp);
-      console.log(response.data.exp);
       setTotalPages(Math.ceil(response.data.totalCount / limit));
     } catch (error) {
       console.error("Error fetching categories", error);

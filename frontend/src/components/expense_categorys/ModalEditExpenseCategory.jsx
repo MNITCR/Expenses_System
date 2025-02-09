@@ -11,12 +11,15 @@ const ModalEditExpenseCategory = ({ showEditModal, setOpenEditModal, editId ,rel
   const {t,i18n} = useTranslation();
   const [code, setCatCode] = useState('');
   const [name, setCatName] = useState('');
+  const token =  localStorage.getItem('authToken');
 
   const getCategoryExpensesByID = async () => {
     const serverUrl = await apiSwitcher.connectToServer();
 
     try {
-      const response = await axios.get(`${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}/${editId}`);
+      const response = await axios.get(`${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}/${editId}`,{headers:{
+          Authorization: token
+        }});
       setCatCode(response.data.code);
       setCatName(response.data.name);
     } catch (error) {
@@ -35,7 +38,9 @@ const ModalEditExpenseCategory = ({ showEditModal, setOpenEditModal, editId ,rel
     const serverUrl = await apiSwitcher.connectToServer();
 
     try {
-      await axios.put(`${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}/${editId}`, { code, name });
+      await axios.put(`${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}/${editId}`, { code, name },{headers:{
+          Authorization: token
+      }});
       setCatCode('');
       setCatName('');
       toast.success(`Updated ${name} successfully!`);

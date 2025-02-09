@@ -30,7 +30,7 @@ const login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(404).json({ message: `Invalid credentials` });
+      return res.status(404).json({ message: `Password did not match.` });
     }
 
     const token = jwt.sign(
@@ -41,7 +41,7 @@ const login = async (req, res) => {
 
     res.status(200).json({ token: token, id: user._id });
   } catch (error) {
-    res.status(500).json({ message: "Something went wrong" });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -61,7 +61,7 @@ const getUser = async (req, res) => {
         email: user.email
       });
   } catch (error) {
-    res.status(500).json({ message: "Something went wrong" });
+    res.status(500).json({ message: error.message });
   }
 };
 

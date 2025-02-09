@@ -1,5 +1,6 @@
 const express = require("express");
 const { MongoClient } = require('mongodb');
+const authMiddleware = require('./middlewares/authMiddlewares');
 const productRoute = require('./routes/product.route');
 const authRoute = require('./routes/authRoutes');
 const userRoute = require('./routes/userRoutes');
@@ -19,8 +20,8 @@ dbConnect();
 // Middleware
 app.use(cors({
   origin: 'http://localhost:5173', // allow requests from the frontend
-//   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow specific HTTP methods
-  // allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow specific HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
 }));
 // app.use(cors());
 app.use(express.json());
@@ -30,21 +31,17 @@ app.use(express.urlencoded({ extended: true}));
 app.use("/api/products", productRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
-app.use("/api/expense", expenseRoute);
-app.use("/api/category_expense", categoryExpenseRoute);
-app.use("/api/currency", currencyRoute);
-app.use("/api/expense_report", ReportRoutes);
-app.use("/api/setting", SettingRoute);
+app.use("/api/expense",authMiddleware, expenseRoute);
+app.use("/api/category_expense",authMiddleware, categoryExpenseRoute);
+app.use("/api/currency",authMiddleware, currencyRoute);
+app.use("/api/expense_report",authMiddleware, ReportRoutes);
+app.use("/api/setting",authMiddleware, SettingRoute);
 
 // app.get("/", (req, res) => {
 //   res.send("<h1>Hello World</h1>");
 // });
 
 // *********** sync data
-// Connection strings
-const CONNECTION_STRING_ONLINE = 'mongodb+srv://admin:svgC7rBimJRZTQV4@backenddb.j1gyv.mongodb.net/NodeAPI?retryWrites=true&w=majority&appName=BackendDB';
-const CONNECTION_STRING_OFFLINE = 'mongodb://localhost:27017/NodeJS';
-
 // Database names
 const sourceDbName = 'NodeAPI';
 const destDbName = 'NodeJS';
@@ -53,8 +50,8 @@ const destDbName = 'NodeJS';
 const collections = ['categoryexpenses', 'currencies', 'expenses', 'users'];
 
 // MongoDB client setup
-const sourceClient = new MongoClient(CONNECTION_STRING_ONLINE);
-const destClient = new MongoClient(CONNECTION_STRING_OFFLINE);
+const sourceClient = new MongoClient(process.env.CONNECTION_SERVER1);
+const destClient = new MongoClient(process.env.CONNECTION_SERVER2);
 
 async function syncData() {
   await sourceClient.connect();
@@ -72,19 +69,23 @@ async function syncData() {
     const changeStream = collection1.watch();
 
     changeStream.on('change', (change) => {
-      console.log('Change detected:', change);
+      // console.log('Change detected:', change); 
       const { operationType, documentKey, fullDocument } = change;
 
       // Depending on the operation type, sync the data to server2
       if (operationType === 'insert') {
-        collection2.insertOne(fullDocument);
+        if(fullDocument)
+          collection2.insertOne(fullDocument);
       } else if (operationType === 'update') {
-        collection2.updateOne(
-          { _id: documentKey._id },
-          { $set: fullDocument }
-        );
+        if (fullDocument) {
+          collection2.updateOne(
+            { _id: documentKey._id },
+            { $set: fullDocument }
+          );
+        }
       } else if (operationType === 'delete') {
-        collection2.deleteOne({ _id: documentKey._id });
+        if(documentKey._id)
+          collection2.deleteOne({ _id: documentKey._id });
       }
     });
   });

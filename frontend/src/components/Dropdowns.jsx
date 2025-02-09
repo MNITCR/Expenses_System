@@ -7,7 +7,7 @@ import {
 const Dropdowns = ({ options, label, onChange, selectedOption }) => {
   return (
     <div>
-      <Dropdown color="gray" label={label} dismissOnClick={false} style={{padding: "0px", background: ""}}>
+      <Dropdown theme={{ floating: { target: "w-full md:w-full" }}} color="gray" label={label} dismissOnClick={false} style={{padding: "0px", background: ""}}>
         <Dropdown.Item>
           <fieldset className="flex max-w-md flex-col gap-4">
             {options.map((option, index) => (

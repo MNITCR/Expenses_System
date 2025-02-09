@@ -18,18 +18,20 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Link } from "react-router-dom";
 import apiSwitcher from "../utils/apiSwitcher";
-import { formatMoney } from '../utils/Site';
+import { formatMoney } from "../utils/Site";
 import { useGlobalSetting } from "../context/GlobalContext";
 import { useTranslation } from "react-i18next";
+import { MdOutlineDriveFolderUpload } from "react-icons/md";
 
 const ExpenseList = () => {
-  const { t,i18n } = useTranslation()
+  const { t, i18n } = useTranslation();
   const { globalSetting, setGlobalSetting } = useGlobalSetting();
   const [expenseList, setExpenseList] = useState([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [loading, setLoading] = useState(false);
   const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("authToken");
 
   // start stat for pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -84,6 +86,9 @@ const ExpenseList = () => {
             filterDate: selectedOption,
             userId: userId,
           },
+          headers:{
+            Authorization: token
+          }
         }
       );
       setExpenseList(response.data.exp);
@@ -115,20 +120,67 @@ const ExpenseList = () => {
   // end reload fetch expense
 
   // delete category expense
+  const [deleteType, setDeleteType] = useState("");
+  const [selectedExpenses, setSelectedExpenses] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+
+  // Handle "select all" checkbox
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedExpenses([]);
+    } else {
+      const allExpenseIds = expenseList.map((expense) => expense._id);
+      setSelectedExpenses(allExpenseIds);
+    }
+    setSelectAll(!selectAll);
+  };
+
+  // Handle individual checkbox change
+  const handleCheckboxChange = (expenseId) => {
+    setSelectedExpenses((prevSelected) => {
+      if (prevSelected.includes(expenseId)) {
+        return prevSelected.filter((id) => id !== expenseId);
+      } else {
+        return [...prevSelected, expenseId];
+      }
+    });
+  };
+
   const handleDelete = async () => {
     const serverUrl = await apiSwitcher.connectToServer();
     try {
-      const response = await axios.delete(
-        `${serverUrl}/${
-          import.meta.env.VITE_API_URL_EXPENSE
-        }/${deleteExpenseId}`
-      );
+      if (deleteType == "single") {
+        const response = await axios.delete(
+          `${serverUrl}/${
+            import.meta.env.VITE_API_URL_EXPENSE
+          }/${deleteExpenseId}`,{
+          headers:{
+            Authorization: token
+          }}
+        );
 
-      if (response.status == 200) {
-        toast.success(response.data.message);
-        setShowDeleteConfirm(false);
-        getExpenseLists();
+        if (response.status == 200) {
+          toast.success(response.data.message);
+          getExpenseLists();
+        }
+      } else if (deleteType == "multiple") {
+        const response = await axios.post(
+          `${serverUrl}/${
+            import.meta.env.VITE_API_URL_EXPENSE
+          }/delete-multiple`,
+          { ids: selectedExpenses },
+          { headers: { "Content-Type": "application/json",Authorization: token }}
+        );
+
+        if (response.status === 200) {
+          toast.success(response.data.message);
+          getExpenseLists();
+          handleSelectAll();
+          handleCheckboxChange(null);
+          setSelectedExpenses([]);
+        }
       }
+      setShowDeleteConfirm(false);
 
       if (expenseList.length === 1 && currentPage === 2) {
         setCurrentPage(1);
@@ -166,6 +218,9 @@ const ExpenseList = () => {
             params: {
               userId: userId,
             },
+            headers:{
+              Authorization: token
+            }
           }
         );
 
@@ -186,88 +241,116 @@ const ExpenseList = () => {
 
   useEffect(() => {
     if (globalSetting && globalSetting.date_format) {
-      switch(globalSetting.date_format){
+      switch (globalSetting.date_format) {
         case 1:
           setFormatDate("yyyy-MM-dd");
-        break;
+          break;
         case 2:
           setFormatDate("yyyy/MM/dd");
-        break;
+          break;
         case 3:
           setFormatDate("yyyy.MM.dd");
-        break;
+          break;
         case 4:
           setFormatDate("dd-MM-yyyy");
-        break;
+          break;
         case 5:
           setFormatDate("dd/MM/yyyy");
-        break;
+          break;
         case 6:
           setFormatDate("dd.MM.yyyy");
-        break;
+          break;
         default:
           setFormatDate("yyyy-MM-dd");
-        break;
+          break;
       }
     }
 
-    if (globalSetting && globalSetting.currency){
-      switch(globalSetting.currency){
+    if (globalSetting && globalSetting.currency) {
+      switch (globalSetting.currency) {
         case 1:
           setCurrencySymbol("USD");
-        break;
+          break;
         case 2:
           setCurrencySymbol("KHR");
-        break;
+          break;
         default:
           setCurrencySymbol("USD");
-        break;
+          break;
       }
-    };
+    }
   });
 
   return (
     <>
       <div className="overflow-x-auto relative">
-        <div className="flex justify-between">
+        <div className="flex md:flex-row flex-col-reverse justify-between">
           <Dropdowns
             options={[
-              { value: "All Day", label: t('all_day')},
-              { value: "Last Day", label: t('last_day')},
-              { value: "Last 7 Days", label: t('last_7_day') },
-              { value: "Last 15 Days", label: t('last_15_day') },
-              { value: "Last 30 Days", label: t('last_30_day') },
-              { value: "Last Year", label: t('last_year') },
+              { value: "All Day", label: t("all_day") },
+              { value: "Last Day", label: t("last_day") },
+              { value: "Last 7 Days", label: t("last_7_day") },
+              { value: "Last 15 Days", label: t("last_15_day") },
+              { value: "Last 30 Days", label: t("last_30_day") },
+              { value: "Last Year", label: t("last_year") },
             ]}
             label={selectedOption}
             onChange={handleOptionChange}
             selectedOption={selectedOption}
           />
-          <div className="flex gap-4 items-center">
+          <div className="flex gap-4 items-center mb-4 md:mb-0">
             <TextInput
               onChange={(e) => {
                 setSearch(e.target.value);
               }}
               type="search"
               sizing="sm"
-              className={`w-[15rem] ${i18n.language === 'km' ? "font-kh_siemreap" : ""}`}
-              placeholder={t('input_search')}
+              className={`w-[100%] md:w-[15rem] ${
+                i18n.language === "km" ? "font-kh_siemreap" : ""
+              }`}
+              placeholder={t("input_search")}
             />
 
             <Dropdown
               dismissOnClick={false}
-              label=<TfiMenuAlt className="bold text-lg text-gray-500" />
+              label=<TfiMenuAlt className="bold md:text-lg text-xl text-gray-500" />
               color="gray"
               size="sm"
               arrowIcon={false}
             >
-              <Dropdown.Item as={Link} href="#" onClick={handleOnClickAdd} className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>
+              <Dropdown.Item
+                as={Link}
+                href="#"
+                onClick={handleOnClickAdd}
+                className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+              >
                 <GrAdd className="text-xl text-emerald-400 font-bold mr-2" />{" "}
-                {t('add_expense')}
+                {t("add_expense")}
               </Dropdown.Item>
-              <Dropdown.Item as={Link} href="#" onClick={handleOnClickUpload} className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>
-                <ImFolderUpload className="text-lg text-emerald-400 font-bold mr-2" />{" "}
-                {t('upload_export')}
+              <Dropdown.Item
+                as={Link}
+                href="#"
+                onClick={handleOnClickUpload}
+                className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+              >
+                <MdOutlineDriveFolderUpload className="text-xl text-emerald-400 font-bold mr-2" />{" "}
+                {t("upload_export")}
+              </Dropdown.Item>
+              <Dropdown.Item
+                as={Link}
+                href="#"
+                onClick={() => {
+                  if (selectedExpenses.length === 0) {
+                    toast.warning("Please select at least one expense to delete!");
+                    return;
+                  }
+                  setShowDeleteConfirm(true);
+                  setDeleteType("multiple");
+                }}
+                className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+              >
+                <AiOutlineDelete className="text-xl text-red-600 font-bold mr-2" />{" "}
+                {t("delete")}
               </Dropdown.Item>
             </Dropdown>
           </div>
@@ -276,26 +359,56 @@ const ExpenseList = () => {
         <Table hoverable className="mt-5 h-auto">
           <Table.Head>
             <Table.HeadCell className="p-4">
-              <Checkbox />
+              <Checkbox checked={selectAll} onChange={handleSelectAll} />
             </Table.HeadCell>
             <Table.HeadCell>
-              <span className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('no')}</span>
+              <span
+                className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+              >
+                {t("no")}
+              </span>
             </Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('date')}</Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('name')}</Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('price')}</Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('category')}</Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('description')}</Table.HeadCell>
-            <Table.HeadCell className={i18n.language === 'km' ? "font-kh_siemreap" : ""}>{t('action')}</Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("date")}
+            </Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("name")}
+            </Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("price")}
+            </Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("category")}
+            </Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("description")}
+            </Table.HeadCell>
+            <Table.HeadCell
+              className={i18n.language === "km" ? "font-kh_siemreap" : ""}
+            >
+              {t("action")}
+            </Table.HeadCell>
           </Table.Head>
           <Table.Body className="divide-y">
             {expenseList.length === 0 ? (
               <Table.Row className="bg-white dark:border-gray-700 dark:bg-gray-800">
                 <Table.Cell
                   colSpan={8}
-                  className={`text-center font-bold text-red-400 ${i18n.language === 'km' ? "font-kh_siemreap" : ""}`}
+                  className={`text-center font-bold text-red-400 ${
+                    i18n.language === "km" ? "font-kh_siemreap" : ""
+                  }`}
                 >
-                  {t('not_found')}
+                  {t("not_found")}
                 </Table.Cell>
               </Table.Row>
             ) : (
@@ -305,11 +418,13 @@ const ExpenseList = () => {
                   className="bg-white dark:border-gray-700 dark:bg-gray-800"
                 >
                   <Table.Cell className="p-4">
-                    <Checkbox value={expense._id} />
+                    <Checkbox
+                      value={expense._id}
+                      checked={selectedExpenses.includes(expense._id)}
+                      onChange={() => handleCheckboxChange(expense._id)}
+                    />
                   </Table.Cell>
-                  <Table.Cell>
-                    {i + 1 + (currentPage - 1) * limit}
-                  </Table.Cell>
+                  <Table.Cell>{i + 1 + (currentPage - 1) * limit}</Table.Cell>
                   <Table.Cell>
                     {expense.date
                       ? format(new Date(expense.date), formatDate)
@@ -318,7 +433,16 @@ const ExpenseList = () => {
                   <Table.Cell className="whitespace-nowrap font-medium text-gray-900 dark:text-white">
                     {expense.name}
                   </Table.Cell>
-                  <Table.Cell>{formatMoney(Number(expense.price), currencySymbol, globalSetting.decimals, globalSetting.ds_separator, globalSetting.ths_separator, globalSetting.dsc_symbol)}</Table.Cell>
+                  <Table.Cell>
+                    {formatMoney(
+                      Number(expense.price),
+                      currencySymbol,
+                      globalSetting.decimals,
+                      globalSetting.ds_separator,
+                      globalSetting.ths_separator,
+                      globalSetting.dsc_symbol
+                    )}
+                  </Table.Cell>
                   <Table.Cell>
                     {expense.category ? expense.category.name : ""}
                   </Table.Cell>
@@ -327,7 +451,7 @@ const ExpenseList = () => {
                     <div className="flex items-center">
                       <a
                         onClick={() => handleOnClickEdit(expense._id)}
-                        title="Update"
+                        title={t("edit")}
                         href="#"
                         className="mr-2 font-medium text-cyan-600 hover:underline dark:text-cyan-500"
                       >
@@ -339,8 +463,9 @@ const ExpenseList = () => {
                         onClick={() => {
                           setDeleteExpenseId(expense._id);
                           setShowDeleteConfirm(true);
+                          setDeleteType("single");
                         }}
-                        title="Deleted"
+                        title={t("delete")}
                         href="#"
                         className="text-[16px] text-red-600 hover:underline dark:text-red-500"
                       >

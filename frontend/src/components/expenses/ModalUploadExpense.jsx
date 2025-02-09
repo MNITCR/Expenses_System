@@ -15,6 +15,7 @@ const ModalUploadExpense = ({
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
   const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("authToken");
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
@@ -54,6 +55,7 @@ const ModalUploadExpense = ({
           {
             headers: {
               "Content-Type": "multipart/form-data",
+              Authorization: token
             },
           }
         );
@@ -70,7 +72,7 @@ const ModalUploadExpense = ({
         }
       }
     } else {
-      toast.success("Please select a file to upload.");
+      toast.warning("Please select a file to upload.");
     }
   };
 

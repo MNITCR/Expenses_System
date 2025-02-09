@@ -36,7 +36,7 @@ const resources = {
       export_pdf: "Export to PDF",
       add_expense: "Add Expense",
       edit_expense: "Edit Expenses",
-      upload_export: "Upload Export",
+      upload_export: "Upload Expenses",
       search: "Search",
       input_search: "Search....",
       expense_system: "Expense System",
@@ -59,12 +59,14 @@ const resources = {
       from_date: "From",
       to_date: "To",
       no_have_account: "Not have an account yet?",
-      register: "Register",
-      login: "Login",
-      input_login: "Login",
+      register: "REGISTER",
+      btn_register: "Register",
+      login: "LOGIN",
+      btn_login: "Login",
       i_agree: "I agree with the",
       term_condition: "terms and conditions",
-      already_account: "Already have account"
+      already_account: "Already have account",
+      delete: "Delete"
     },
   },
   km: {
@@ -131,6 +133,7 @@ const resources = {
       i_agree: "ខ្ញុំយល់ស្របជាមួយ",
       term_condition: "រយៈពេលនិងលក្ខខណ្ឌ",
       already_account: "មានគណនីរួចហើយ",
+      delete: "លុប",
     },
   },
 };

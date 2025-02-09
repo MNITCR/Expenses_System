@@ -4,6 +4,7 @@ const multer = require('multer');
 const xlsx = require('xlsx');
 const fs = require('fs');
 const path = require('path');
+const { default: mongoose } = require('mongoose');
 
 const getStartDateForFilter = (filterDate) => {
     const now = new Date();
@@ -102,29 +103,56 @@ const updateExpense = async (req, res) => {
           return res.status(400).json({message: "Please select a category"});
         }
         const {id} = req.params;
-        const expense = await Expense.findByIdAndUpdate(id, req.body);
+        const expense = await Expense.findByIdAndUpdate(id, req.body,{ new: true });
         if(!expense){
             return res.status(404).json({message: "Expense not found"});
         }
-        const expense_update = await Expense.findById(id);
-        res.status(200).json(expense_update);
+        res.status(200).json(expense);
     } catch (error) {
         res.status(500).json({message: error.message});
     }
 }
 
 const deleteExpense = async (req, res) => {
-    try {
-        const {id} = req.params;
-        const expense = await Expense.findByIdAndDelete(id);
-        if(!expense){
-            return res.status(404).json({message: "Expense not found"});
-        }
-        res.status(200).json({message: "Expense deleted successfully"});
-    } catch (error) {
-        res.status(500).json({message: error.message});
-    }
+  try {
+      const {id} = req.params;
+      const expense = await Expense.findByIdAndDelete(id);
+      if(!expense){
+        return res.status(404).json({message: "Expense not found"});
+      }
+      res.status(200).json({message: "Expense deleted successfully"});
+  } catch (error) {
+      res.status(500).json({message: error.message});
+  }
 }
+
+const deleteMultiExpense = async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    const objectIds = ids.map(id => {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return null;
+      }
+      return new mongoose.Types.ObjectId(id);
+    }).filter(id => id !== null);
+
+    if (objectIds.length === 0) {
+      return res.status(400).json({ message: 'No valid IDs provided' });
+    }
+    const result = await Expense.deleteMany({ _id: { $in: objectIds } });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "No expenses found with the provided IDs" });
+    }
+
+    res.status(200).json({ message: `${result.deletedCount} expenses deleted successfully` });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
 
 // upload excel file
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -141,28 +169,31 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage }).single('file');
 
-const excelDateToJSDate = (serialDate) => {
-    const parsedDate = xlsx.SSF.parse_date_code(serialDate);
-    return new Date(parsedDate.y, parsedDate.m - 1, parsedDate.d, parsedDate.H, parsedDate.M, parsedDate.S); // Convert to JavaScript Date
+const excelDateToJSDate = (serial) => {
+  const excelEpoch = new Date(1899, 11, 30);
+  return new Date(excelEpoch.getTime() + serial * 86400000);
 };
 
 // Date formatting function
 const formatDate = (date) => {
-const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+  return date.toISOString().split('T')[0] + "";
 };
 
 const uploadExpense = (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
-        if (req.file) {
-          fs.unlink(req.file.path, (unlinkErr) => {
-            if (unlinkErr) {
-              res.status(404).json({message: unlinkErr.message});
-            }
-          });
-        }
-        return res.status(500).json({ message: err.message });
+      if (req.file) {
+        fs.unlink(req.file.path, (unlinkErr) => {
+          if (unlinkErr) {
+            console.error("Failed to delete file after error:", unlinkErr.message);
+          }
+        });
+      }
+      return res.status(500).json({ message: err.message });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
     try {
@@ -172,52 +203,62 @@ const uploadExpense = (req, res) => {
       const sheetNames = workbook.SheetNames;
       const sheet = workbook.Sheets[sheetNames[0]];
       const jsonData = xlsx.utils.sheet_to_json(sheet);
-      const formattedData = jsonData.map(item => ({
+
+      const formattedData = jsonData.map((item) => ({
         ...item,
-        date: formatDate(item.date ? (typeof item.date === 'number' ? excelDateToJSDate(item.date) : new Date(item.date)) : new Date()),
-        userId: req.body.userId || ''
+        date: formatDate(
+          item.date
+            ? typeof item.date === "number"
+              ? excelDateToJSDate(item.date)
+              : new Date(item.date)
+            : new Date()
+        ).toString(),
+        userId: req.body.userId || "",
       }));
 
-      const categoryCodes = formattedData.map(item => item.category);
-      const categories = await CategoryExpense.find({ code: { $in: categoryCodes }, userId: req.body.userId });
+      const categoryCodes = formattedData.map((item) => item.category);
+      const categories = await CategoryExpense.find({
+        code: { $in: categoryCodes },
+        userId: req.body.userId,
+      });
 
-      // Create a mapping of category codes to category _id
+      // Create category mapping
       const categoryMap = categories.reduce((acc, category) => {
-        acc[category.code] = category._id; // Map code to _id
+        acc[category.code] = category._id;
         return acc;
       }, {});
 
-      const updatedData = formattedData.map(item => {
+      const updatedData = formattedData.filter((item) => {
         if (categoryMap[item.category]) {
           item.category = categoryMap[item.category];
-        } else {
-          console.log(`Category not found for code: ${item.category}`);
-          return null;
+          return true;
         }
-        return item;
-      }).filter(item => item !== null); // Remove any null entries
+        return false;
+      });
 
-      // Check if all categories were replaced successfully
+      // If some categories are missing, return error and stop execution
       if (updatedData.length !== formattedData.length) {
+        await fs.promises.unlink(filePath);
         return res.status(400).json({
-          message: 'Some categories were not found.'
+          message: "Some categories were not found.",
         });
       }
 
-      const expenses = await Expense.insertMany(formattedData);
+      const expenses = await Expense.insertMany(updatedData);
 
-      // Delete the file after successful processing
-      fs.unlink(filePath, (unlinkErr) => {
-        if (unlinkErr) {
-          res.status(404).json({message: unlinkErr.message});
-        }
-      });
-      res.status(200).json({
-        message: 'File uploaded and data inserted successfully!',
+      await fs.promises.unlink(filePath);
+      return res.status(200).json({
+        message: "File uploaded and data inserted successfully!",
         data: expenses,
       });
+
     } catch (error) {
-      res.status(500).json({ message: error.message});
+      if (req.file) {
+        await fs.promises.unlink(req.file.path).catch((unlinkErr) => {
+          console.error("Failed to delete file after catch error:", unlinkErr.message);
+        });
+      }
+      return res.status(500).json({ message: error.message });
     }
   });
 };
@@ -268,6 +309,7 @@ module.exports = {
   createExpense,
   updateExpense,
   deleteExpense,
+  deleteMultiExpense,
   uploadExpense,
   getExpensesByDate
 };

@@ -15,8 +15,48 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import './lang/i18n';
 
+interface AuthCheckProps {
+  setIsAuthenticated: (isAuthenticated: boolean) => void;
+}
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // AuthCheck component that checks authentication status
+  function AuthCheck({ setIsAuthenticated } : AuthCheckProps) {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+      const token = localStorage.getItem("authToken");
+      const expirationTime = localStorage.getItem("tokenExpiration");
+      window.addEventListener("beforeunload", () => {
+        localStorage.setItem("lastVisitedPath", window.location.pathname);
+      });
+      if (!token || !expirationTime) {
+        if (
+          window.location.pathname !== "/login" &&
+          window.location.pathname !== "/register"
+        ) {
+          localStorage.setItem("lastVisitedPath", window.location.pathname);
+          navigate("/login");
+        }
+        setIsAuthenticated(false);
+        return;
+      }
+
+      if (new Date().getTime() > parseInt(expirationTime)) {
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("tokenExpiration");
+        setIsAuthenticated(false);
+        const notify = () => toast.warning("Toke is expire!");
+        notify();
+        localStorage.setItem("lastVisitedPath", window.location.pathname);
+        navigate("/login");
+      } else {
+        setIsAuthenticated(true);
+      }
+    }, [navigate, setIsAuthenticated]);
+
+    return null;
+  }
   return (
     <Router>
       <GlobalProvider>
@@ -24,7 +64,7 @@ function App() {
           <ToastContainer />
           <AuthCheck setIsAuthenticated={setIsAuthenticated} />
           {isAuthenticated && <Navbar />}
-          <div className="p-6">
+          <div className="p-5 md:p-6">
             <Routes>
               <Route
                 path="/"
@@ -42,40 +82,6 @@ function App() {
       </GlobalProvider>
     </Router>
   );
-}
-
-// AuthCheck component that checks authentication status
-function AuthCheck({ setIsAuthenticated }) {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    const expirationTime = localStorage.getItem("tokenExpiration");
-
-    if (!token || !expirationTime) {
-      if (
-        window.location.pathname !== "/login" &&
-        window.location.pathname !== "/register"
-      ) {
-        navigate("/login"); // Redirect to login if user is not on login or register page
-      }
-      setIsAuthenticated(false);
-      return;
-    }
-
-    if (new Date().getTime() > parseInt(expirationTime)) {
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("tokenExpiration");
-      setIsAuthenticated(false);
-      const notify = () => toast.warning("Toke is expire!");
-      notify();
-      navigate("/login");
-    } else {
-      setIsAuthenticated(true);
-    }
-  }, [navigate, setIsAuthenticated]);
-
-  return null;
 }
 
 export default App;

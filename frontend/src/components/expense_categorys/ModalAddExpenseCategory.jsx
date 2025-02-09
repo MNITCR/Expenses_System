@@ -16,7 +16,9 @@ const ModalAddExpenseCategory = ({showAddModal,setOpenAddModal, catCodeRef, relo
     e.preventDefault();
     const serverUrl = await apiSwitcher.connectToServer();
     try {
-      await axios.post(`${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}`, { code, name, userId });
+      await axios.post(`${serverUrl}/${import.meta.env.VITE_API_URL_EXP_CAT}`, { code, name, userId },{headers:{
+          Authorization: token
+      }});
       setCatCode('');
       setCatName('');
       toast.success(`Add ${name} successfully!`);
